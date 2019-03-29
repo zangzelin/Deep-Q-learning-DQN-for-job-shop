@@ -2,7 +2,6 @@
 import random
 from collections import deque
 
-import gym
 import keras
 import numpy as np
 from keras.layers import Dense, Input
@@ -159,12 +158,10 @@ if __name__ == "__main__":
 
         # problem.PlotResult()
         if e % 10 == 0:
-            meanscore = np.mean(score)
             print("loop : {}/{},  score: {} success: {} / 10, e: {:.2}"
                   .format(e, EPISODES, score, successnumber, agent.epsilon))
             print(action_list, len(action_list))
             f = open('log/logs', 'a')
-            f.write(str(meanscore)+'\n')
             f.close()
             successnumber = 0
 
