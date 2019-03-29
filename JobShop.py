@@ -5,25 +5,30 @@ import matplotlib.pyplot as plt
 
 
 class JobShop:
-    # This class is the environment of Job shop problem 
+    # This class is the environment of Job shop problem
 
-
+    bool_generate_random_jssp = None
     number_job = None
     number_machine = None
     number_features = None
 
-    time_low = None             # the lower limit of one position of job 's processing time.
-    time_high = None            # the upper limit of one position of job 's processing time.
+    # the lower limit of one position of job 's processing time.
+    time_low = None
+    # the upper limit of one position of job 's processing time.
+    time_high = None
 
-    M_processing_time = None    # Matrix of processing time, M_processing_time[i,j] is the processing time of job i 's position j.
-    M_processing_order = None   # Matrix of processing time, M_processing_order[i,j] is the machine restrain of job i 's position j.
+    # Matrix of processing time, M_processing_time[i,j] is the processing time of job i 's position j.
+    M_processing_time = None
+    # Matrix of processing time, M_processing_order[i,j] is the machine restrain of job i 's position j.
+    M_processing_order = None
     M_start_time = None
     M_end_time = None
     X_schedule_plan = None
     schedule_line = None
 
-    def __init__(self, number_machine, number_job, time_low, time_high):
+    def __init__(self, number_machine, number_job, time_low, time_high, bool_random):
         self.number_job = number_job
+        self.bool_generate_random_jssp = random
         self.number_machine = number_machine
         self.time_low = time_low
         self.time_high = time_high
@@ -31,7 +36,7 @@ class JobShop:
         self.GenerateRandomProblem()
 
     def Get_Possible_Job_Position(self):
-        # ergodic the schedule_line, and return the possible position to produce of jobs 
+        # ergodic the schedule_line, and return the possible position to produce of jobs
 
         job_position_list = [0 for i in range(self.number_job)]
         for job_id, job_position in self.schedule_line:
@@ -55,8 +60,8 @@ class JobShop:
     def Step(self, action=None):
         # be called in main function
         # input action and return state score and done
-        # action: choose a job to process. 
-        # state: 
+        # action: choose a job to process.
+        # state:
 
         done = False
         if action == None:
@@ -93,56 +98,63 @@ class JobShop:
         return state, score, done
 
     def GenerateRandomProblem(self):
-        a = list(range(self.time_low, self.time_high))
-        p = []
-        for k in range(self.number_job):
-            p.append(random.sample(a, self.number_machine))
-        self.M_processing_time = np.array(p)
+        # Generate the jobshop problem
+        # random problem or a stable problem
 
-        a = list(range(self.number_machine))
-        r = []
-        for k in range(self.number_job):
-            r.append(random.sample(a, self.number_machine))
-        self.M_processing_order = np.array(r)
+        if self.bool_generate_random_jssp == True:
+            a = list(range(self.time_low, self.time_high))
+            p = []
+            for k in range(self.number_job):
+                p.append(random.sample(a, self.number_machine))
+            self.M_processing_time = np.array(p)
 
-        sum_time_of_job = np.sum(self.M_processing_time, axis=1)
+            a = list(range(self.number_machine))
+            r = []
+            for k in range(self.number_job):
+                r.append(random.sample(a, self.number_machine))
+            self.M_processing_order = np.array(r)
 
-        for i in range(self.number_job):
-            for j in range(i+1, self.number_job):
-                if sum_time_of_job[i] > sum_time_of_job[j]:
-                    a = np.copy(self.M_processing_time[j, :])
-                    self.M_processing_time[j, :] = self.M_processing_time[i, :]
-                    self.M_processing_time[i, :] = a
-                    sum_time_of_job[i], sum_time_of_job[j] = sum_time_of_job[j], sum_time_of_job[i]
+            sum_time_of_job = np.sum(self.M_processing_time, axis=1)
 
-        sum_time_of_mach = [[i, 0] for i in range(self.number_machine)]
-        for i in range(self.number_job):
-            for j in range(self.number_machine):
-                sum_time_of_mach[self.M_processing_order[i, j]
-                                 ][1] += self.M_processing_time[i, j]
+            for i in range(self.number_job):
+                for j in range(i+1, self.number_job):
+                    if sum_time_of_job[i] > sum_time_of_job[j]:
+                        a = np.copy(self.M_processing_time[j, :])
+                        self.M_processing_time[j,
+                                               :] = self.M_processing_time[i, :]
+                        self.M_processing_time[i, :] = a
+                        sum_time_of_job[i], sum_time_of_job[j] = sum_time_of_job[j], sum_time_of_job[i]
 
-        for i in range(self.number_machine):
-            for j in range(i+1, self.number_machine):
-                if sum_time_of_mach[i][1] > sum_time_of_mach[j][1]:
-                    sum_time_of_mach[i], sum_time_of_mach[j] = sum_time_of_mach[j], sum_time_of_mach[i]
+            sum_time_of_mach = [[i, 0] for i in range(self.number_machine)]
+            for i in range(self.number_job):
+                for j in range(self.number_machine):
+                    sum_time_of_mach[self.M_processing_order[i, j]
+                                     ][1] += self.M_processing_time[i, j]
 
-        nr = np.zeros((self.number_job, self.number_machine), dtype=int)-1
-        for i in range(self.number_machine):
-            nr[self.M_processing_order == i] = sum_time_of_mach[i][0]
+            for i in range(self.number_machine):
+                for j in range(i+1, self.number_machine):
+                    if sum_time_of_mach[i][1] > sum_time_of_mach[j][1]:
+                        sum_time_of_mach[i], sum_time_of_mach[j] = sum_time_of_mach[j], sum_time_of_mach[i]
 
-        sum_time_of_mach = [[i, 0] for i in range(self.number_machine)]
-        for i in range(self.number_job):
-            for j in range(self.number_machine):
-                sum_time_of_mach[self.M_processing_order[i, j]
-                                 ][1] += self.M_processing_time[i, j]
+            nr = np.zeros((self.number_job, self.number_machine), dtype=int)-1
+            for i in range(self.number_machine):
+                nr[self.M_processing_order == i] = sum_time_of_mach[i][0]
 
-        self.M_processing_order = nr
-        self.M_processing_order = np.array(
-            [[1, 3, 0, 2], [0, 2, 1, 3], [3, 1, 2, 0], [1, 3, 0, 2], [0, 1, 2, 3]])
-        self.M_processing_time = np.array([[18, 20, 21, 17], [18, 26, 15, 16], [
-                                          17, 18, 27, 23], [18, 21, 25, 15], [22, 29, 28, 21]])
+            sum_time_of_mach = [[i, 0] for i in range(self.number_machine)]
+            for i in range(self.number_job):
+                for j in range(self.number_machine):
+                    sum_time_of_mach[self.M_processing_order[i, j]
+                                     ][1] += self.M_processing_time[i, j]
+
+            self.M_processing_order = nr
+        else:
+            self.M_processing_order = np.array(
+                [[1, 3, 0, 2], [0, 2, 1, 3], [3, 1, 2, 0], [1, 3, 0, 2], [0, 1, 2, 3]])
+            self.M_processing_time = np.array([[18, 20, 21, 17], [18, 26, 15, 16], [
+                17, 18, 27, 23], [18, 21, 25, 15], [22, 29, 28, 21]])
 
     def MeasurementAction(self, action_history):
+        # measurement the action and return the makespan
 
         M_start_time = np.zeros((self.number_machine, self.number_job))
         M_end_time = np.zeros((self.number_machine, self.number_job))
@@ -177,6 +189,7 @@ class JobShop:
         return np.max(M_end_time)
 
     def PlotResult(self, num=0):
+        # plot function for the gant map
 
         colorbox = ['yellow', 'whitesmoke', 'lightyellow',
                     'khaki', 'silver', 'pink', 'lightgreen', 'orange', 'grey', 'r', 'brown']
@@ -216,6 +229,8 @@ class JobShop:
         plt.close()
 
     def Print_info(self):
+        # print the problem infomation
+
         print('order')
         print(self.M_processing_order)
         print('time')
@@ -227,12 +242,10 @@ class JobShop:
         print('X')
         print(self.X_schedule_plan)
 
-    def GetJobCompletionPersentage(self, job_id, job_position):
-        job_time_need = np.sum(self.M_processing_time, axis=1)
-        job_position_time_need = self.M_processing_time[job_id, job_position]
-        return job_position_time_need/job_time_need[job_id]
-
     def GetFeature(self, job_id, job_position):
+        # get the feature of one position of one job 
+        # readers can change the feature to get a more powerful model 
+
         # raw features
         machine_id = self.M_processing_order[job_id, job_position]
         job_time_need = np.sum(self.M_processing_time, axis=1)
@@ -283,6 +296,7 @@ class JobShop:
 
 
 def PlotRec(mPoint1, mPoint2, mText):
+    # sub function to plot a box in figure
 
     vPoint = np.zeros((4, 2))
     vPoint[0, :] = [mPoint1, mText-0.8]
@@ -296,15 +310,13 @@ def PlotRec(mPoint1, mPoint2, mText):
 
 
 if __name__ == "__main__":
+    # main function used in debug
+
     localtime = time.asctime(time.localtime(time.time()))
     print(localtime)
 
-    problem = JobShop(4, 5, 15, 30)
+    problem = JobShop(4, 5, 15, 30, bool_random = False)
     # print(problem.MeasurementAction([]))
     print(problem.MeasurementAction([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0],
                                      [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], ]))
-    #  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2],
-    #  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3],
     problem.GetFeature(0, 0)
-    # problem.Print_info()
-    # problem.PlotResult()
