@@ -5,16 +5,18 @@ import matplotlib.pyplot as plt
 
 
 class JobShop:
+    # This class is the environment of Job shop problem 
+
 
     number_job = None
     number_machine = None
     number_features = None
 
-    time_low = None
-    time_high = None
+    time_low = None             # the lower limit of one position of job 's processing time.
+    time_high = None            # the upper limit of one position of job 's processing time.
 
-    M_processing_time = None
-    M_processing_order = None
+    M_processing_time = None    # Matrix of processing time, M_processing_time[i,j] is the processing time of job i 's position j.
+    M_processing_order = None   # Matrix of processing time, M_processing_order[i,j] is the machine restrain of job i 's position j.
     M_start_time = None
     M_end_time = None
     X_schedule_plan = None
@@ -29,32 +31,42 @@ class JobShop:
         self.GenerateRandomProblem()
 
     def Get_Possible_Job_Position(self):
-        job_position_list = [ 0 for i in range(self.number_job)]
+        # ergodic the schedule_line, and return the possible position to produce of jobs 
+
+        job_position_list = [0 for i in range(self.number_job)]
         for job_id, job_position in self.schedule_line:
             if job_position < self.number_machine-1:
                 job_position_list[job_id] = job_position+1
             else:
                 job_position_list[job_id] = -1
 
-        return [ [i,job_position_list[i]] for i in range(len(job_position_list))]
-    
+        return [[i, job_position_list[i]] for i in range(len(job_position_list))]
+
     def Get_Features(self, possible_job_position):
-        featrues  = []
+        # return the features of current state
+
+        featrues = []
         for job_id, job_position in possible_job_position:
-            f_item = self.GetFeature(job_id,job_position)
-            featrues.append( f_item )
+            f_item = self.GetFeature(job_id, job_position)
+            featrues.append(f_item)
 
         return featrues
-    def Step(self, action = None):
+
+    def Step(self, action=None):
+        # be called in main function
+        # input action and return state score and done
+        # action: choose a job to process. 
+        # state: 
+
         done = False
         if action == None:
             self.MeasurementAction(self.schedule_line)
             possible_pob_position = self.Get_Possible_Job_Position()
-            state =  np.array(self.Get_Features(possible_pob_position))
+            state = np.array(self.Get_Features(possible_pob_position))
             score = 0
         else:
-            
-            job_position_list = [ 0 for i in range(self.number_job)]
+
+            job_position_list = [0 for i in range(self.number_job)]
             for job_id, job_position in self.schedule_line:
                 if job_position < self.number_machine-1:
                     job_position_list[job_id] = job_position+1
@@ -62,19 +74,23 @@ class JobShop:
                     job_position_list[job_id] = -1
             if job_position_list[action] == -1:
                 done = True
-                canchoose = [[i,job_position_list[i]] for i in range(self.number_job) if job_position_list[i] != -1 ]
+                canchoose = [[i, job_position_list[i]] for i in range(
+                    self.number_job) if job_position_list[i] != -1]
                 action = canchoose[0]
             else:
-                action = [action,job_position_list[action]]
-           
+                action = [action, job_position_list[action]]
+
             self.schedule_line.append(action)
             self.MeasurementAction(self.schedule_line)
+            # self.PlotResult()
             score = np.max(self.M_end_time)
-            
-            possible_pob_position = self.Get_Possible_Job_Position()
-            state =  np.array(self.Get_Features(possible_pob_position))
 
-        return state, score,done
+            possible_pob_position = self.Get_Possible_Job_Position()
+            state = np.array(self.Get_Features(possible_pob_position))
+
+        state = [np.reshape(state[i], (1, 2,)) for i in range(self.number_job)]
+
+        return state, score, done
 
     def GenerateRandomProblem(self):
         a = list(range(self.time_low, self.time_high))
@@ -121,8 +137,11 @@ class JobShop:
                                  ][1] += self.M_processing_time[i, j]
 
         self.M_processing_order = nr
-        self.M_processing_order = np.array([[1, 3, 0, 2], [0, 2, 1, 3], [3, 1, 2, 0], [1, 3, 0, 2], [0, 1, 2, 3]])
-        self.M_processing_time = np.array([[18, 20, 21, 17], [18, 26, 15, 16], [17, 18, 27, 23], [18, 21, 25, 15], [22, 29, 28, 21]])
+        self.M_processing_order = np.array(
+            [[1, 3, 0, 2], [0, 2, 1, 3], [3, 1, 2, 0], [1, 3, 0, 2], [0, 1, 2, 3]])
+        self.M_processing_time = np.array([[18, 20, 21, 17], [18, 26, 15, 16], [
+                                          17, 18, 27, 23], [18, 21, 25, 15], [22, 29, 28, 21]])
+
     def MeasurementAction(self, action_history):
 
         M_start_time = np.zeros((self.number_machine, self.number_job))
@@ -194,6 +213,7 @@ class JobShop:
         plt.ylabel('Machine')
         plt.tight_layout()
         plt.savefig('gant.png')
+        plt.close()
 
     def Print_info(self):
         print('order')
@@ -207,50 +227,58 @@ class JobShop:
         print('X')
         print(self.X_schedule_plan)
 
-    def GetJobCompletionPersentage(self, job_id,job_position):
-        job_time_need = np.sum(self.M_processing_time,axis=1)
-        job_position_time_need = self.M_processing_time[job_id,job_position]
-        return job_position_time_need/job_time_need[job_id] 
+    def GetJobCompletionPersentage(self, job_id, job_position):
+        job_time_need = np.sum(self.M_processing_time, axis=1)
+        job_position_time_need = self.M_processing_time[job_id, job_position]
+        return job_position_time_need/job_time_need[job_id]
 
-    def GetFeature(self,job_id,job_position):
+    def GetFeature(self, job_id, job_position):
         # raw features
         machine_id = self.M_processing_order[job_id, job_position]
-        job_time_need = np.sum(self.M_processing_time,axis=1)
-        current_time_use = self.M_processing_time[job_id,job_position]
+        job_time_need = np.sum(self.M_processing_time, axis=1)
+        current_time_use = self.M_processing_time[job_id, job_position]
 
-        Machine_endtime = np.max(self.M_end_time,axis=1)
+        machine_endtime = np.max(self.M_end_time, axis=1)
+        job_endtime = np.sum(self.M_processing_time[job_id, :job_position])
+        job_alltime = np.sum(self.M_processing_time[job_id, :])
 
-        if job_position ==0:
-            frac_currentend_othermachineave = 1
+        if job_position == 0:
+            frac_currentend_othermachineave = 0.5
+            frac_currentend_otherjobave = 0.5
             frac_currentendplusthisposition_othermachineave = 1
             schedule_finish_station = 0
 
             frac_jobposition_jobtime = 1
             frac_jobposition_totaltime = 1
         else:
-            frac_currentend_othermachineave = (0.1+Machine_endtime[machine_id]) / (0.1+np.average(Machine_endtime))
-            frac_currentendplusthisposition_othermachineave = (Machine_endtime[machine_id]+current_time_use)/np.average(Machine_endtime)
-            schedule_finish_station = np.count_nonzero(self.M_end_time)/self.number_machine/self.number_job
+            frac_currentend_othermachineave = (
+                0.1+machine_endtime[machine_id]) / (0.1+np.average(machine_endtime))
+            frac_currentendplusthisposition_othermachineave = (
+                machine_endtime[machine_id]+current_time_use)/np.average(machine_endtime)
+            schedule_finish_station = np.count_nonzero(
+                self.M_end_time)/self.number_machine/self.number_job
 
+            frac_currentend_otherjobave = (0.1+job_endtime) / (0.1+job_alltime)
             frac_jobposition_jobtime = current_time_use/job_time_need[job_id]
             frac_jobposition_totaltime = current_time_use/np.sum(job_time_need)
-
 
         # feature choose
         features = []
         # current features
         features.append(frac_currentend_othermachineave)
+        features.append(frac_currentend_otherjobave)
+
         # features.append(frac_currentendplusthisposition_othermachineave)
         # features.append(schedule_finish_station)
         # # stable features
-        # features.append(frac_jobposition_jobtime) 
+        # features.append(frac_jobposition_jobtime)
         # features.append(frac_jobposition_totaltime)
 
         self.number_features = len(features)
-        
-        if job_position ==-1:
-            features = [-1]* self.number_features
-        
+
+        if job_position == -1:
+            features = [-1] * self.number_features
+
         return features
 
 
@@ -273,10 +301,10 @@ if __name__ == "__main__":
 
     problem = JobShop(4, 5, 15, 30)
     # print(problem.MeasurementAction([]))
-    print(problem.MeasurementAction([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], 
+    print(problem.MeasurementAction([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0],
                                      [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], ]))
-                                    #  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], 
-                                    #  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], 
-    problem.GetFeature(0,0)
+    #  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2],
+    #  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3],
+    problem.GetFeature(0, 0)
     # problem.Print_info()
     # problem.PlotResult()
